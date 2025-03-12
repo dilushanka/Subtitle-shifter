@@ -28,6 +28,18 @@
             border-radius: 8px;
             box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
         }
+        .drop-zone {
+            border: 2px dashed #007BFF;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+            transition: background-color 0.3s;
+        }
+        .drop-zone:hover {
+            background-color: #e3f2fd;
+        }
         textarea {
             width: 100%;
             height: 300px;
@@ -72,7 +84,8 @@
     <nav><i class="fa-solid fa-film"></i> Subtitle Shifter</nav>
     <div class="container">
         <h2><i class="fa-solid fa-file-upload"></i> Upload Subtitle</h2>
-        <input type="file" id="fileInput" accept=".srt"><br><br>
+        <div class="drop-zone" id="dropZone">Drag & Drop Subtitle Here or Click to Upload</div>
+        <input type="file" id="fileInput" accept=".srt" style="display: none;"><br><br>
         <input type="number" id="shiftTime" placeholder="Shift in milliseconds (e.g., 1000 for 1s)"><br><br>
         <button onclick="shiftSubtitles()"><i class="fa-solid fa-clock"></i> Shift Subtitles</button>
         <button id="downloadBtn" onclick="downloadSRT()"><i class="fa-solid fa-download"></i> Download Modified SRT</button>
@@ -84,8 +97,32 @@
         let originalSRT = "";
         let fileName = "shifted_subtitles";
         
+        document.getElementById('dropZone').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+        
+        document.getElementById('dropZone').addEventListener('dragover', (event) => {
+            event.preventDefault();
+            event.target.style.backgroundColor = "#e3f2fd";
+        });
+        
+        document.getElementById('dropZone').addEventListener('dragleave', (event) => {
+            event.target.style.backgroundColor = "#f9f9f9";
+        });
+        
+        document.getElementById('dropZone').addEventListener('drop', (event) => {
+            event.preventDefault();
+            event.target.style.backgroundColor = "#f9f9f9";
+            const file = event.dataTransfer.files[0];
+            handleFile(file);
+        });
+        
         document.getElementById('fileInput').addEventListener('change', function(event) {
             const file = event.target.files[0];
+            handleFile(file);
+        });
+
+        function handleFile(file) {
             if (file) {
                 fileName = file.name.replace(/\.srt$/, '');
                 const reader = new FileReader();
@@ -95,7 +132,7 @@
                 };
                 reader.readAsText(file);
             }
-        });
+        }
 
         function shiftSubtitles() {
             const shiftValue = parseInt(document.getElementById('shiftTime').value, 10);
@@ -129,17 +166,14 @@
             let totalMs = ((hours * 3600 + minutes * 60 + seconds) * 1000 + milliseconds) + shift;
             if (totalMs < 0) totalMs = 0;
 
-            const newHours = String(Math.floor(totalMs / 3600000)).padStart(2, '0');
-            const newMinutes = String(Math.floor((totalMs % 3600000) / 60000)).padStart(2, '0');
-            const newSeconds = String(Math.floor((totalMs % 60000) / 1000)).padStart(2, '0');
-            const newMs = String(totalMs % 1000).padStart(3, '0');
-
-            return `${newHours}:${newMinutes}:${newSeconds},${newMs}`;
+            return `${String(Math.floor(totalMs / 3600000)).padStart(2, '0')}:` +
+                   `${String(Math.floor((totalMs % 3600000) / 60000)).padStart(2, '0')}:` +
+                   `${String(Math.floor((totalMs % 60000) / 1000)).padStart(2, '0')},` +
+                   `${String(totalMs % 1000).padStart(3, '0')}`;
         }
 
         function downloadSRT() {
-            const modifiedText = document.getElementById('output').value;
-            const blob = new Blob([modifiedText], { type: 'text/plain' });
+            const blob = new Blob([document.getElementById('output').value], { type: 'text/plain' });
             const a = document.createElement('a');
             a.href = URL.createObjectURL(blob);
             a.download = `${fileName}-helalk.com.srt`;
